@@ -1,6 +1,3 @@
-var width = 1200;
-var height = 800;
-
 var game;
 
 var menuState = {
@@ -10,8 +7,8 @@ var menuState = {
 
     create: function() {
         var bg = game.add.sprite(0, 0, 'menu');
-        bg.width = width;
-        bg.height = height;
+        bg.width = game.world.width;
+        bg.height = game.world.height;
 
         game.input.mouse.capture = true;
     },
@@ -25,30 +22,40 @@ var menuState = {
 
 var mainState = {
     preload: function() {
-        game.load.image('ball', 'assets/ball.jpg');
+        game.load.image('block', 'assets/block.jpg');
     },
 
     create: function() {
-        this.spaceKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
-
         game.physics.startSystem(Phaser.Physics.ARCADE);
+        game.physics.arcade.setBounds(0, 0, game.world.width, game.world.height + 100);
 
-        this.ball = game.add.sprite(100, 100, 'ball');
+        this.ball = game.add.sprite(game.world.centerX, game.world.centerY, 'block');
         game.physics.arcade.enable(this.ball);
         this.ball.body.collideWorldBounds = true;
-        this.ball.body.velocity.x = 100;
-        this.ball.body.velocity.y = 100;
+        this.ball.body.velocity.x = 200;
+        this.ball.body.velocity.y = 200;
         this.ball.body.bounce.setTo(1, 1);
+
+        this.paddle = game.add.sprite(game.world.centerX, game.world.height - 40, 'block');
+        this.paddle.width = 200;
+        this.paddle.height = 32;
+        game.physics.arcade.enable(this.paddle);
+        this.paddle.body.immovable = true;
+        this.paddle.body.bounce.setTo(1, 1);
     },
 
     update: function() {
-        if (this.spaceKey.isDown) {
-            this.ball.body.x = 10;
+        this.paddle.body.position.x = game.math.clamp(game.input.x - this.paddle.width / 2, 0, game.world.width - this.paddle.width);
+
+        game.physics.arcade.collide(this.paddle, this.ball);
+
+        if (this.ball.body.position.y > game.world.height + this.ball.height) {
+            game.state.start('main');
         }
     }
 };
 
-game = new Phaser.Game(width, height, Phaser.AUTO, '', null, false, false);
+game = new Phaser.Game(1200, 800, Phaser.AUTO, '', null, false, false);
 
 game.state.add('menu', menuState);
 game.state.add('main', mainState);
