@@ -63,6 +63,7 @@ var mainState = {
                 block.body.immovable = true;
                 block.width = blockWidth;
                 block.height = blockHeight;
+                block.alive = true;
                 this.blocks.add(block);
             }
         }
@@ -86,8 +87,25 @@ var mainState = {
 
             ball.body.velocity.rotate(0, 0, Math.PI / 6 * eccentricity);
         });
+
         game.physics.arcade.collide(this.ball, this.blocks, function(ball, block) {
-            block.kill();
+            block.alive = false;
+
+            var blockGrowth =  0.3;
+            var blockAnimation = 400;
+            var tween = game.add.tween(block);
+            tween.to({
+                "width": block.width + blockGrowth * block.width,
+                "height": block.height + blockGrowth * block.height,
+                "x": block.body.position.x - (blockGrowth / 2) *  block.width,
+                "y": block.body.position.y - (blockGrowth / 2) *  block.height,
+                "alpha": 0
+            }, blockAnimation, Phaser.Easing.Exponential.Quadratic, true);
+            tween.onComplete.add(function(block, tween) {
+                block.kill();
+            });
+        }, function(ball, block){
+            return block.alive;
         });
 
         if (this.ball.body.position.y > game.world.height + this.ball.height) {
