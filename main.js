@@ -71,7 +71,21 @@ var mainState = {
     update: function() {
         this.paddle.body.position.x = game.math.clamp(game.input.x - this.paddle.width / 2, 0, game.world.width - this.paddle.width);
 
-        game.physics.arcade.collide(this.paddle, this.ball);
+        game.physics.arcade.collide(this.paddle, this.ball, function(paddle, ball) {
+            if (ball.body.position.y + ball.height > paddle.body.position.y) {
+                return;
+            }
+
+            var paddleCenter = paddle.body.position.x + paddle.width / 2;
+            var ballCenter = ball.body.position.x + ball.width / 2;
+
+            var eccentricity = 0.6 * game.math.clamp((ballCenter - paddleCenter) / (paddle.width / 2), -1, 1);
+            var magnitude = ball.body.velocity.getMagnitude();
+            ball.body.velocity.x = magnitude * Math.sin(Math.PI / 2 * eccentricity);
+            ball.body.velocity.y = -magnitude * Math.cos(Math.PI / 2 * eccentricity);
+
+            ball.body.velocity.rotate(0, 0, Math.PI / 6 * eccentricity);
+        });
         game.physics.arcade.collide(this.ball, this.blocks, function(ball, block) {
             block.kill();
         });
