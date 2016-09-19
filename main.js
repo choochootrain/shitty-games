@@ -26,6 +26,8 @@ var mainState = {
     },
 
     create: function() {
+        this.juicy = game.plugins.add(new Phaser.Plugin.Juicy(this));
+
         game.physics.startSystem(Phaser.Physics.ARCADE);
         game.physics.arcade.setBounds(0, 0, game.world.width, game.world.height + 100);
 
@@ -77,6 +79,8 @@ var mainState = {
                 return;
             }
 
+            this.juicy.shake();
+
             var paddleCenter = paddle.body.position.x + paddle.width / 2;
             var ballCenter = ball.body.position.x + ball.width / 2;
 
@@ -86,9 +90,10 @@ var mainState = {
             ball.body.velocity.y = -magnitude * Math.cos(Math.PI / 2 * eccentricity);
 
             ball.body.velocity.rotate(0, 0, Math.PI / 6 * eccentricity);
-        });
+        }.bind(this));
 
         game.physics.arcade.collide(this.ball, this.blocks, function(ball, block) {
+            this.juicy.shake();
             block.alive = false;
 
             var blockGrowth =  0.3;
@@ -103,8 +108,8 @@ var mainState = {
             }, blockAnimation, Phaser.Easing.Exponential.Quadratic, true);
             tween.onComplete.add(function(block, tween) {
                 block.kill();
-            });
-        }, function(ball, block){
+            }.bind(this));
+        }.bind(this), function(ball, block){
             return block.alive;
         });
 
