@@ -33,9 +33,11 @@ var mainState = {
 
         this.ball = game.add.sprite(game.world.centerX, game.world.centerY, 'block');
         game.physics.arcade.enable(this.ball);
+        this.ball.width = 20;
+        this.ball.height = 20;
         this.ball.body.collideWorldBounds = true;
-        this.ball.body.velocity.x = 200;
-        this.ball.body.velocity.y = 200;
+        this.ball.body.velocity.x = 300;
+        this.ball.body.velocity.y = 300;
         this.ball.body.bounce.setTo(1, 1);
 
         this.paddle = game.add.sprite(game.world.centerX, game.world.height - 40, 'block');
@@ -46,12 +48,13 @@ var mainState = {
         this.paddle.body.bounce.setTo(1, 1);
 
         this.blocks = game.add.group();
-        var numRows = 5;
-        var maxBlockRowSize = 6;
-        var blockHeight = 64;
-        var blockMargin = 10;
+        var numRows = 6;
+        var maxBlockRowSize = 10;
+        var blockHeight = 30;
+        var blockMargin = 25;
+        var blockMarginTop = 50;
         for (var i = 0; i < numRows; i++) {
-            var y = i * (blockHeight + blockMargin) + blockMargin;
+            var y = i * (blockHeight + blockMargin) + blockMargin + blockMarginTop;
             var rowSize = i % 2 === 1 ? maxBlockRowSize - 1 : maxBlockRowSize;
 
             var blockWidth = (game.world.width - (maxBlockRowSize + 1) * blockMargin) / maxBlockRowSize;
@@ -60,7 +63,13 @@ var mainState = {
 
             for (var j = 0; j < rowSize; j++) {
                 var x = rowOffset + (blockWidth + blockMargin) * j;
-                var block = game.add.sprite(x, y, 'block');
+                var block = game.add.sprite(game.world.centerX, -100, 'block');
+                var tween = game.add.tween(block);
+                tween.to({
+                    "x": x,
+                    "y": y
+                }, 200 + 100 * Math.random(), Phaser.Easing.Exponential.Quadratic, true, 300 * Math.random());
+
                 game.physics.arcade.enable(block);
                 block.body.immovable = true;
                 block.width = blockWidth;
@@ -97,13 +106,13 @@ var mainState = {
             block.alive = false;
 
             var blockGrowth =  0.3;
-            var blockAnimation = 400;
+            var blockAnimation = 200;
             var tween = game.add.tween(block);
             tween.to({
-                "width": block.width + blockGrowth * block.width,
-                "height": block.height + blockGrowth * block.height,
-                "x": block.body.position.x - (blockGrowth / 2) *  block.width,
-                "y": block.body.position.y - (blockGrowth / 2) *  block.height,
+                "width": 0,
+                "height": 0,
+                "x": block.body.position.x + (1 / 2) *  block.width,
+                "y": block.body.position.y + (1 / 2) *  block.height,
                 "alpha": 0
             }, blockAnimation, Phaser.Easing.Exponential.Quadratic, true);
             tween.onComplete.add(function(block, tween) {
