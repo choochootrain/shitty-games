@@ -42,12 +42,39 @@ var mainState = {
         game.physics.arcade.enable(this.paddle);
         this.paddle.body.immovable = true;
         this.paddle.body.bounce.setTo(1, 1);
+
+        this.blocks = game.add.group();
+        var numRows = 5;
+        var maxBlockRowSize = 6;
+        var blockHeight = 64;
+        var blockMargin = 10;
+        for (var i = 0; i < numRows; i++) {
+            var y = i * (blockHeight + blockMargin) + blockMargin;
+            var rowSize = i % 2 === 1 ? maxBlockRowSize - 1 : maxBlockRowSize;
+
+            var blockWidth = (game.world.width - (maxBlockRowSize + 1) * blockMargin) / maxBlockRowSize;
+
+            var rowOffset = (i % 2 === 1 ? (blockWidth + blockMargin) / 2 : 0) + blockMargin;
+
+            for (var j = 0; j < rowSize; j++) {
+                var x = rowOffset + (blockWidth + blockMargin) * j;
+                var block = game.add.sprite(x, y, 'block');
+                game.physics.arcade.enable(block);
+                block.body.immovable = true;
+                block.width = blockWidth;
+                block.height = blockHeight;
+                this.blocks.add(block);
+            }
+        }
     },
 
     update: function() {
         this.paddle.body.position.x = game.math.clamp(game.input.x - this.paddle.width / 2, 0, game.world.width - this.paddle.width);
 
         game.physics.arcade.collide(this.paddle, this.ball);
+        game.physics.arcade.collide(this.ball, this.blocks, function(ball, block) {
+            block.kill();
+        });
 
         if (this.ball.body.position.y > game.world.height + this.ball.height) {
             game.state.start('main');
