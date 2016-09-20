@@ -39,19 +39,19 @@ Phaser.Plugin.Juicy = function (game) {
   /**
   * @property {number} _trailCounter - A count of how many trails we're tracking
   * @private
-  */  
+  */
   this._trailCounter = 0;
 
   /**
   * @property {object} _overScales - An object containing overscaling configurations
   * @private
-  */  
+  */
   this._overScales = {};
 
   /**
   * @property {number} _overScalesCounter - A count of how many overScales we're tracking
   * @private
-  */  
+  */
   this._overScalesCounter = 0;
 };
 
@@ -115,7 +115,7 @@ Phaser.Plugin.Juicy.ScreenFlash.prototype.flash = function(maxAlpha, duration) {
 */
 Phaser.Plugin.Juicy.Trail = function(game, trailLength, color) {
   Phaser.Graphics.call(this, game, 0,0);
-  
+
   /**
   * @property {Phaser.Sprite} target - The target sprite whose movement we want to create the trail from
   */
@@ -138,7 +138,7 @@ Phaser.Plugin.Juicy.Trail = function(game, trailLength, color) {
   * @property {Phaser.Sprite} trailColor - The color of the trail
   */
   this.trailColor = color || 0xFFFFFF;
-  
+
   /**
   * @property {Array<Phaser.Point>} _segments - A historical collection of the previous position of the target
   * @private
@@ -178,10 +178,10 @@ Phaser.Plugin.Juicy.Trail.prototype.update = function() {
 
 /**
 * Adds a segment to the segments list and culls the list if it is too long
-* 
+*
 * @param {number} [x] - The x position of the point
 * @param {number} [y] - The y position of the point
-* 
+*
 * @method Phaser.Plugin.Juicy.Trail#addSegment
 * @memberof Phaser.Plugin.Juicy.Trail
 */
@@ -204,10 +204,10 @@ Phaser.Plugin.Juicy.Trail.prototype.addSegment = function(x, y) {
 
 /**
 * Creates and draws the triangle trail from segments
-* 
+*
 * @param {number} [offsetX] - The x position of the object
 * @param {number} [offsetY] - The y position of the object
-* 
+*
 * @method Phaser.Plugin.Juicy.Trail#redrawSegments
 * @memberof Phaser.Plugin.Juicy.Trail
 */
@@ -230,7 +230,7 @@ Phaser.Plugin.Juicy.Trail.prototype.redrawSegments = function(offsetX, offsetY) 
 
   // now we loop over all the segments, the list has the "youngest" segment at the end
   var prevAng = 0;
-  
+
   for(var j = 0; j < this._segments.length; ++j) {
     // store the active segment for convenience
     s1 = this._segments[j];
@@ -268,9 +268,9 @@ Phaser.Plugin.Juicy.Trail.prototype.redrawSegments = function(offsetX, offsetY) 
   }
   // we need at least four vertices to draw something
   if(this._verts.length >= 8) {
-    // now, we have a triangle "strip", but flash can't draw that without 
+    // now, we have a triangle "strip", but flash can't draw that without
     // instructions for which vertices to connect, so it's time to make those
-    
+
     // here, we loop over all the vertices and pair them together in triangles
     // each group of four vertices forms two triangles
     for(var k = 0; k < this._verts.length; k++) {
@@ -284,7 +284,7 @@ Phaser.Plugin.Juicy.Trail.prototype.redrawSegments = function(offsetX, offsetY) 
     this.beginFill(this.trailColor);
     this.drawTriangles(this._verts, this._indices);
     this.endFill();
-    
+
   }
 };
 
@@ -301,10 +301,10 @@ Phaser.Plugin.Juicy.Trail.prototype.redrawSegments = function(offsetX, offsetY) 
 
 /**
 * Begins the screen shake effect
-* 
+*
 * @param {number} [duration=20] - The duration of the screen shake
 * @param {number} [strength=20] - The strength of the screen shake
-* 
+*
 * @method Phaser.Plugin.Juicy#shake
 * @memberof Phaser.Plugin.Juicy
 */
@@ -319,7 +319,7 @@ Phaser.Plugin.Juicy.prototype.shake = function (duration, strength) {
 * Creates a 'Juicy.ScreenFlash' object
 *
 * @param {string} color - The color of the screen flash
-* 
+*
 * @type {Phaser.Plugin.Juicy.ScreenFlash}
 */
 
@@ -333,7 +333,7 @@ Phaser.Plugin.Juicy.prototype.createScreenFlash = function(color) {
 *
 * @param {number} length - The length of the trail
 * @param {number} color - The color of the trail
-* 
+*
 * @type {Phaser.Plugin.Juicy.Trail}
 */
 Phaser.Plugin.Juicy.prototype.createTrail = function(length, color) {
@@ -347,7 +347,7 @@ Phaser.Plugin.Juicy.prototype.createTrail = function(length, color) {
 * @param {Phaser.Sprite} object - The object to over scale
 * @param {number} [scale=1.5] - The scale amount to overscale by
 * @param {Phaser.Point} [initialScale=new Phaser.Point(1,1)] - The initial scale of the object
-* 
+*
 */
 Phaser.Plugin.Juicy.prototype.overScale = function(object, scale, initialScale) {
   scale = scale || 1.5;
@@ -359,9 +359,9 @@ Phaser.Plugin.Juicy.prototype.overScale = function(object, scale, initialScale) 
       object: object,
       cache: initialScale.copyTo({})
     };
-  } 
+  }
   scaleObj.scale = scale;
-  
+
   this._overScales[id] = scaleObj;
 };
 
@@ -372,13 +372,13 @@ Phaser.Plugin.Juicy.prototype.overScale = function(object, scale, initialScale) 
 * @param {number} [strength=0.2] - The strength of the effect
 * @param {number} [delay=0] - The delay of the snap-back tween. 50ms are automaticallly added to whatever the delay amount is.
 * @param {Phaser.Point} [initialScale=new Phaser.Point(1,1)] - The initial scale of the object
-* 
+*
 */
 Phaser.Plugin.Juicy.prototype.jelly = function(object, strength, delay, initialScale) {
   strength = strength || 0.2;
   delay = delay || 0;
   initialScale = initialScale ||  new Phaser.Point(1, 1);
-  
+
   this.game.add.tween(object.scale).to({x: initialScale.x + (initialScale.x * strength)}, 50, Phaser.Easing.Quadratic.InOut, true, delay)
   .to({x: initialScale.x}, 600, Phaser.Easing.Elastic.Out, true);
 
@@ -392,7 +392,7 @@ Phaser.Plugin.Juicy.prototype.jelly = function(object, strength, delay, initialS
 * @param {Phaser.Sprite} object - The object to mouse stretch
 * @param {number} [strength=0.5] - The strength of the effect
 * @param {Phaser.Point} [initialScale=new Phaser.Point(1,1)] - The initial scale of the object
-* 
+*
 */
 Phaser.Plugin.Juicy.prototype.mouseStretch = function(object, strength, initialScale) {
     strength = strength || 0.5;
@@ -410,7 +410,7 @@ Phaser.Plugin.Juicy.prototype.mouseStretch = function(object, strength, initialS
 Phaser.Plugin.Juicy.prototype.update = function () {
   var scaleObj;
   // Screen Shake
-  if(this._shakeWorldTime > 0) { 
+  if(this._shakeWorldTime > 0) {
     var magnitude = (this._shakeWorldTime / this._shakeWorldMax) * this._shakeWorldMax;
     var x = this.game.rnd.integerInRange(-magnitude, magnitude);
     var y = this.game.rnd.integerInRange(-magnitude, magnitude);
@@ -466,7 +466,7 @@ if(!Phaser.Graphics.prototype.drawTriangle) {
   };
 
   /*
-  * Draws {Phaser.Polygon} triangles 
+  * Draws {Phaser.Polygon} triangles
   *
   * @param {Array<Phaser.Point>|Array<number>} vertices - An array of Phaser.Points or numbers that make up the vertices of the triangles
   * @param {Array<number>} {indices=null} - An array of numbers that describe what order to draw the vertices in
@@ -506,10 +506,10 @@ if(!Phaser.Graphics.prototype.drawTriangle) {
                   points.push(vertices[indices[i * 3 + 1]]);
                   points.push(vertices[indices[i * 3 + 2]]);
                   if(points.length === 3) {
-                      this.drawTriangle(points, cull);    
+                      this.drawTriangle(points, cull);
                       points = [];
                   }
-                  
+
               }
           } else {
               for (i = 0; i < indices.length; i++) {

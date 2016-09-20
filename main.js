@@ -1,11 +1,20 @@
 var game;
 
+var colors = [
+    0xF92672,
+    0x66D9EF,
+    0xA6E22E,
+    0xFD971F
+];
+
 var menuState = {
     preload: function() {
         game.load.image('menu', 'assets/menu.png');
     },
 
     create: function() {
+        game.stage.backgroundColor = 0x272822;
+
         var bg = game.add.sprite(0, 0, 'menu');
         bg.width = game.world.width;
         bg.height = game.world.height;
@@ -22,47 +31,52 @@ var menuState = {
 
 var mainState = {
     preload: function() {
-        game.load.image('block', 'assets/block.jpg');
+        game.load.image('block', 'assets/block.png');
     },
 
     create: function() {
+        game.stage.backgroundColor = 0x272822;
+
         this.juicy = game.plugins.add(new Phaser.Plugin.Juicy(this));
 
         game.physics.startSystem(Phaser.Physics.ARCADE);
         game.physics.arcade.setBounds(0, 0, game.world.width, game.world.height + 100);
 
-        this.ball = game.add.sprite(game.world.centerX, game.world.centerY, 'block');
+        this.ball = game.add.sprite(0, 0, 'block');
+        this.ball.anchor.x = 0.5;
+        this.ball.anchor.y = 0.5;
         game.physics.arcade.enable(this.ball);
-        this.ball.width = 20;
-        this.ball.height = 20;
         this.ball.body.collideWorldBounds = true;
-        this.ball.body.velocity.x = 300;
-        this.ball.body.velocity.y = 300;
+        this.ball.body.velocity.x = 600;
+        this.ball.body.velocity.y = 600;
         this.ball.body.bounce.setTo(1, 1);
+        this.ball.body.angularDrag = 500;
+        this.shakeFactor = 2;
 
         this.paddle = game.add.sprite(game.world.centerX, game.world.height - 40, 'block');
+        this.paddle.tint = 0xABAA98;
+
         this.paddle.width = 200;
         this.paddle.height = 32;
         game.physics.arcade.enable(this.paddle);
         this.paddle.body.immovable = true;
-        this.paddle.body.bounce.setTo(1, 1);
 
         this.blocks = game.add.group();
-        var numRows = 6;
-        var maxBlockRowSize = 10;
-        var blockHeight = 30;
-        var blockMargin = 25;
-        var blockMarginTop = 50;
+        var numRows = 10;
+        var maxBlockRowSize = 17;
+        var blockHeight = 32;
+        var blockPadding = 5;
+        var blockMargin = 50;
         for (var i = 0; i < numRows; i++) {
-            var y = i * (blockHeight + blockMargin) + blockMargin + blockMarginTop;
+            var y = i * (blockHeight + blockPadding) + blockPadding + blockMargin;
             var rowSize = i % 2 === 1 ? maxBlockRowSize - 1 : maxBlockRowSize;
 
-            var blockWidth = (game.world.width - (maxBlockRowSize + 1) * blockMargin) / maxBlockRowSize;
+            var blockWidth = ((game.world.width - 2 * blockMargin) - (maxBlockRowSize + 1) * blockPadding) / maxBlockRowSize;
 
-            var rowOffset = (i % 2 === 1 ? (blockWidth + blockMargin) / 2 : 0) + blockMargin;
+            var rowOffset = (i % 2 === 1 ? (blockWidth + blockPadding) / 2 : 0) + blockMargin;
 
             for (var j = 0; j < rowSize; j++) {
-                var x = rowOffset + (blockWidth + blockMargin) * j;
+                var x = rowOffset + (blockWidth + blockPadding) * j;
                 var block = game.add.sprite(game.world.centerX, -100, 'block');
                 var tween = game.add.tween(block);
                 tween.to({
@@ -75,7 +89,14 @@ var mainState = {
                 block.width = blockWidth;
                 block.height = blockHeight;
                 block.alive = true;
+                if ((i < numRows / 2 - 2 || i >= numRows / 2 + 2) ||
+                    (j < rowSize / 2 - 2 || j >= rowSize / 2 + 2)) {
+                    block.tint = colors[i % colors.length];
+                } else {
+                    block.tint = 0xFFF7FB;
+                }
                 this.blocks.add(block);
+
             }
         }
     },
@@ -84,36 +105,49 @@ var mainState = {
         this.paddle.body.position.x = game.math.clamp(game.input.x - this.paddle.width / 2, 0, game.world.width - this.paddle.width);
 
         game.physics.arcade.collide(this.paddle, this.ball, function(paddle, ball) {
-            if (ball.body.position.y + ball.height > paddle.body.position.y) {
+            if (ball.body.position.y + ball.height / 2 > paddle.body.position.y) {
                 return;
             }
 
-            this.juicy.shake();
+            this.juicy.overScale(ball, 1.7);
+            this.shakeFactor = 2;
 
             var paddleCenter = paddle.body.position.x + paddle.width / 2;
-            var ballCenter = ball.body.position.x + ball.width / 2;
 
-            var eccentricity = 0.6 * game.math.clamp((ballCenter - paddleCenter) / (paddle.width / 2), -1, 1);
+            var eccentricity = 0.6 * game.math.clamp((ball.body.position.x - paddleCenter) / (paddle.width / 2), -1, 1);
             var magnitude = ball.body.velocity.getMagnitude();
             ball.body.velocity.x = magnitude * Math.sin(Math.PI / 2 * eccentricity);
             ball.body.velocity.y = -magnitude * Math.cos(Math.PI / 2 * eccentricity);
 
             ball.body.velocity.rotate(0, 0, Math.PI / 6 * eccentricity);
+            ball.body.angularVelocity = 100000 * eccentricity;
+            console.log(ball.body.angularVelocity);
         }.bind(this));
 
         game.physics.arcade.collide(this.ball, this.blocks, function(ball, block) {
-            this.juicy.shake();
+            ball.body.angularVelocity += (1000 * Math.random()) - 500;
+            console.log(ball.body.angularVelocity);
+
+            this.juicy.overScale(ball, 2);
+            this.shakeFactor = game.math.clamp(this.shakeFactor * 1.1, 2, 10);
+            this.juicy.shake(this.shakeFactor);
             block.alive = false;
 
-            var blockGrowth =  0.3;
-            var blockAnimation = 200;
+            game.world.sendToBack(block);
+            block.anchor.x = 0.5;
+            block.anchor.y = 0.5;
+            var blockShrink =  0.5;
+            var blockFall = 500;
+            var blockScatter = 100;
+            var blockAnimation = 1000;
             var tween = game.add.tween(block);
             tween.to({
-                "width": 0,
-                "height": 0,
-                "x": block.body.position.x + (1 / 2) *  block.width,
-                "y": block.body.position.y + (1 / 2) *  block.height,
-                "alpha": 0
+                "width": block.width * blockShrink,
+                "height": block.height * blockShrink,
+                "rotation": (4 * Math.random() - 2) * Math.PI,
+                "x": block.body.position.x + (2 * Math.random() - 1) * blockScatter,
+                "y": block.body.position.y + blockFall,
+                "alpha": 0.2
             }, blockAnimation, Phaser.Easing.Exponential.Quadratic, true);
             tween.onComplete.add(function(block, tween) {
                 block.kill();
@@ -122,7 +156,7 @@ var mainState = {
             return block.alive;
         });
 
-        if (this.ball.body.position.y > game.world.height + this.ball.height) {
+        if (this.ball.body.position.y + this.ball.height / 2 > game.world.height) {
             game.state.start('main');
         }
     }
