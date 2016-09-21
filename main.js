@@ -42,11 +42,35 @@ var mainState = {
         game.physics.startSystem(Phaser.Physics.ARCADE);
         game.physics.arcade.setBounds(0, 0, game.world.width, game.world.height + 100);
 
-        this.ball = game.add.sprite(0, 0, 'block');
+        this.walls = game.add.group();
+        var wallTop = game.add.sprite(0, -1, 'block');
+        wallTop.width = game.world.width;
+        wallTop.height = 1;
+        game.physics.arcade.enable(wallTop);
+        wallTop.body.immovable = true;
+        wallTop.alpha = 0;
+        this.walls.add(wallTop);
+
+        var wallLeft = game.add.sprite(-1, 0, 'block');
+        wallLeft.width = 1;
+        wallLeft.height = game.world.height;
+        game.physics.arcade.enable(wallLeft);
+        wallLeft.body.immovable = true;
+        wallLeft.alpha = 0;
+        this.walls.add(wallLeft);
+
+        var wallRight = game.add.sprite(game.world.width, 0, 'block');
+        wallRight.width = 1;
+        wallRight.height = game.world.height;
+        game.physics.arcade.enable(wallRight);
+        wallRight.body.immovable = true;
+        wallRight.alpha = 0;
+        this.walls.add(wallRight);
+
+        this.ball = game.add.sprite(game.world.centerX, game.world.centerY, 'block');
         this.ball.anchor.x = 0.5;
         this.ball.anchor.y = 0.5;
         game.physics.arcade.enable(this.ball);
-        this.ball.body.collideWorldBounds = true;
         this.ball.body.velocity.x = 600;
         this.ball.body.velocity.y = 600;
         this.ball.body.bounce.setTo(1, 1);
@@ -102,6 +126,10 @@ var mainState = {
     },
 
     update: function() {
+        game.physics.arcade.collide(this.ball, this.walls, function(ball, wall) {
+            this.juicy.overScale(ball, 1.7);
+        }.bind(this));
+
         this.paddle.body.position.x = game.math.clamp(game.input.x - this.paddle.width / 2, 0, game.world.width - this.paddle.width);
 
         game.physics.arcade.collide(this.paddle, this.ball, function(paddle, ball) {
@@ -121,37 +149,49 @@ var mainState = {
 
             ball.body.velocity.rotate(0, 0, Math.PI / 6 * eccentricity);
             ball.body.angularVelocity = 100000 * eccentricity;
-            console.log(ball.body.angularVelocity);
         }.bind(this));
 
         game.physics.arcade.collide(this.ball, this.blocks, function(ball, block) {
+            this.shakeFactor = game.math.clamp(this.shakeFactor * 1.1, 2, 10);
+
+            var emitter = game.add.emitter(game.world.centerX, game.world.centerY, 50);
+            emitter.makeParticles('block', 0, 50, true);
+            emitter.x = block.body.position.x;
+            emitter.y = block.y;
+            emitter.setSize(block.width, block.height);
+            emitter.gravity = 1000;
+            emitter.setAlpha(0.1, 0.8, 200, Phaser.Easing.Exponential.Quadratic);
+            emitter.minParticleScale = 0.2;
+            emitter.maxParticleScale = 0.7;
+            emitter.minParticleSpeed.x = -this.shakeFactor * 100;
+            emitter.minParticleSpeed.y = -this.shakeFactor * 100;
+            emitter.maxParticleSpeed.x = this.shakeFactor * 100;
+            emitter.maxParticleSpeed.y = this.shakeFactor * 100;
+            emitter.forEach(function(particle) {
+                particle.tint = block.tint;
+            });
+            emitter.explode(1500, 10 + Math.random() * (4 * this.shakeFactor));
+            game.time.events.add((10.1 - this.shakeFactor) * 100 * Math.random() + 1000, function() {
+                emitter.forEach(function(particle) {
+                    var tween = game.add.tween(particle);
+                    tween.to({
+                        "alpha": 0,
+                        "width": 5,
+                        "height": 5
+                    }, 3000 + 3000 * Math.random(), Phaser.Easing.Exponential.Quadratic, true);
+                    tween.onComplete.add(function(particle, tween) {
+                        particle.kill();
+                    });
+                });
+                emitter.kill();
+            });
+
             ball.body.angularVelocity += (1000 * Math.random()) - 500;
-            console.log(ball.body.angularVelocity);
 
             this.juicy.overScale(ball, 2);
-            this.shakeFactor = game.math.clamp(this.shakeFactor * 1.1, 2, 10);
             this.juicy.shake(this.shakeFactor);
             block.alive = false;
-
-            game.world.sendToBack(block);
-            block.anchor.x = 0.5;
-            block.anchor.y = 0.5;
-            var blockShrink =  0.5;
-            var blockFall = 500;
-            var blockScatter = 100;
-            var blockAnimation = 1000;
-            var tween = game.add.tween(block);
-            tween.to({
-                "width": block.width * blockShrink,
-                "height": block.height * blockShrink,
-                "rotation": (4 * Math.random() - 2) * Math.PI,
-                "x": block.body.position.x + (2 * Math.random() - 1) * blockScatter,
-                "y": block.body.position.y + blockFall,
-                "alpha": 0.2
-            }, blockAnimation, Phaser.Easing.Exponential.Quadratic, true);
-            tween.onComplete.add(function(block, tween) {
-                block.kill();
-            }.bind(this));
+            block.kill();
         }.bind(this), function(ball, block){
             return block.alive;
         });
