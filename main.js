@@ -1,121 +1,89 @@
-var game;
+const SCREEN_ID = window.SCREEN_ID = "SCREEN";
+const PLAYER_ID = window.PLAYER_ID = "PLAYER_ID";
 
-function createBall() {
-    var ball = game.add.sprite(game.world.centerX, game.world.centerY, 'block');
-    ball.tag = 'ball';
-    game.physics.arcade.enable(ball);
-    ball.body.collideWorldBounds = true;
-    ball.body.velocity.x = 500;
-    ball.body.velocity.y = 500;
-    ball.body.bounce.setTo(1, 1);
+const Game = function (){
+    // This is our "main" function which controls everything. We setup the
+    // systems to loop over, setup entities, and setup and kick off the game
+    // loop.
+    var self = this;
 
-    ball.collider = {
-        onCollision: new Phaser.Signal()
+    this.time = {
+        start: null,
+        now: null,
+        delta: 0,
     };
 
-    return ball;
-}
+    var screen = new ECS.Entity(SCREEN_ID);
+    screen.addComponent( new ECS.Components.Appearance({
+        size: 800,
+        colors: { r: 127, g: 127, b: 127 }
+    }));
+    screen.addComponent( new ECS.Components.Position({ x: 0, y: 0 }));
+    ECS.entities[SCREEN_ID] = screen;
 
-function createPaddle() {
-    var paddle = game.add.sprite(game.world.centerX, game.world.height - 40, 'block');
-    paddle.tag = 'paddle';
-    paddle.width = 200;
-    paddle.height = 32;
-    game.physics.arcade.enable(paddle);
-    paddle.body.immovable = true;
-    paddle.body.bounce.setTo(1, 1);
+    // Create a bunch of random entities
+    for(var i=0; i < 20; i++){
+        var entity = ECS.Assemblages.CollisionRect();
 
-    paddle.collider = {
-        onCollision: new Phaser.Signal()
-    };
-
-    paddle.input = {
-        onInput: new Phaser.Signal()
-    };
-
-    paddle.input.onInput.add(function(x, y) {
-        paddle.body.position.x = game.math.clamp(x - paddle.width / 2, 0, game.world.width - paddle.width);
-    }, this);
-
-    return paddle;
-}
-
-function createBlock(x, y, blockWidth, blockHeight) {
-    var block = game.add.sprite(x, y, 'block');
-    block.tag = 'block';
-    game.physics.arcade.enable(block);
-    block.body.immovable = true;
-    block.width = blockWidth;
-    block.height = blockHeight;
-
-    block.collider = {
-        onCollision: new Phaser.Signal()
-    };
-
-    block.collider.onCollision.add(function(other) {
-        if (other.tag === 'ball') {
-            block.body.immovable = false;
-            block.body.gravity.y = 100;
-        } else if (other.tag === 'paddle') {
-            block.body.velocity.y = -block.body.velocity.y;
-        } else if (other.tag === 'block') {
-            block.kill();
-        }
-    }, this);
-
-    return block;
-}
-
-var mainState = {
-    preload: function() {
-        game.load.image('block', 'assets/block.jpg');
-    },
-
-    create: function() {
-        game.physics.startSystem(Phaser.Physics.ARCADE);
-        game.physics.arcade.setBounds(0, 0, game.world.width, game.world.height + 100);
-
-        this.entities = [ createBall(), createPaddle() ];
-
-        for (var i = 0; i < game.world.width; i += 110) {
-            for (var j = game.world.height / 2; j > 0; j -= 74) {
-                this.entities.push(createBlock(i, j, 100, 64));
-            }
-        }
-    },
-
-    update: function() {
-        //input system
-        for (var i = 0; i < this.entities.length; i++) {
-            var e = this.entities[i];
-
-            // ignore non inputtable entities
-            if (!e.input) continue;
-
-            e.input.onInput.dispatch(game.input.x, game.input.y);
+        // % chance for decaying rects
+        if(Math.random() < 0.8){
+            entity.addComponent( new ECS.Components.Health() );
         }
 
+        ECS.entities[entity.id] = entity;
+    }
 
-        //collision system
-        for (var i = 0; i < this.entities.length; i++) {
-            for (var j = i + 1; j < this.entities.length; j++) {
-                var a = this.entities[i];
-                var b = this.entities[j];
+    // PLAYER entity
+    // ----------------------------------
+    // Make the last entity the "PC" entity - it must be player controlled,
+    // have health and collision components
+    var player = ECS.Assemblages.Player(PLAYER_ID);
+    ECS.entities[PLAYER_ID] = player;
 
+    // Setup systems
+    // ----------------------------------
+    // Setup the array of systems. The order of the systems is likely critical,
+    // so ensure the systems are iterated in the right order
+    var systems = [
+        ECS.systems.userInput,
+        ECS.systems.collision,
+        ECS.systems.decay,
+        ECS.systems.render,
+    ];
 
-                // ignore non collidable pairs
-                if (!a.collider || !b.collider) continue;
+    // Game loop
+    // ----------------------------------
+    function gameLoop (now){
+        if (!self.time.start) self.time.start = now;
+        if (!self.time.now) self.time.now = now;
 
-                if (game.physics.arcade.collide(a, b)) {
-                    a.collider.onCollision.dispatch(b);
-                    b.collider.onCollision.dispatch(a);
-                }
-            }
+        self.time.delta = now - self.time.now;
+        self.time.now = now;
+
+        for(var i=0,len=systems.length; i < len; i++){
+            // Call the system and pass in entities
+            // XXX: One optimal solution would be to only pass in entities
+            // that have the relevant components for the system, instead of
+            // forcing the system to iterate over all entities
+            systems[i](ECS.entities);
+        }
+
+        if(self._running !== false){
+            requestAnimationFrame(gameLoop);
         }
     }
+
+    requestAnimationFrame(gameLoop);
+
+    this._running = true;
+    this.endGame = function endGame(){
+        self._running = false;
+        document.getElementById('score').innerHTML = "GAME OVER " + ECS.score;
+    };
+
+
+    return this;
 };
 
-game = new Phaser.Game(1200, 800, Phaser.AUTO, '', null, false, false);
-
-game.state.add('main', mainState);
-game.state.start('main');
+// Kick off the game
+const game = new Game();
